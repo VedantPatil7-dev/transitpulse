@@ -82,7 +82,7 @@ const path = require('path');
 // Serve frontend main access indices
 app.get('/', (req, res) => {
     // __dirname ensures it looks exactly where server.js is running
-    const homepagePath = path.join(__dirname, 'index.html'); 
+    const homepagePath = path.join(public, 'index.html'); 
     
     res.sendFile(homepagePath, (err) => {
         if (err) {
