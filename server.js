@@ -64,15 +64,25 @@ app.listen(PORT, () => {
     console.log(`👉 Admin Panel:     http://localhost:${PORT}/admin.html`);
     console.log(`===================================================\n`);
 });
-// Serve frontend main access indices
+const path = require('path');
+const express = require('express');
+const app = express();
+
+// 1. Tell Express to serve ALL static files (CSS, JS, images) from the public folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ... (your other middleware, routes, and SQLite setup) ...
+
+// 2. Update the root route to point inside the public folder
 app.get('/', (req, res) => {
-    // __dirname ensures it looks exactly where server.js is running
-    const homepagePath = path.join(public, 'index.html'); 
+    const homepagePath = path.join(__dirname, 'public', 'index.html'); 
     
     res.sendFile(homepagePath, (err) => {
         if (err) {
             console.error("CRITICAL: Could not find index.html at location:", homepagePath);
-            res.status(404).send("<h3>TransitPulse Error: index.html is missing from the server root!</h3>");
+            res.status(404).send("<h3>TransitPulse Error: index.html is missing from the public folder!</h3>");
         }
     });
 });
+
+// ... (your admin.html route and app.listen code) ...
