@@ -65,10 +65,6 @@ app.listen(PORT, () => {
     console.log(`===================================================\n`);
 });
 
-const express = require('express');
-const path = require('path');
-const app = express();
-
 // 1. Tell Express to serve ALL static files (CSS, JS, images) from the public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
