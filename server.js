@@ -1,85 +1,110 @@
 const express = require('express');
 const path = require('path');
+const http = require('http');
+const sqlite3 = require('sqlite3').verbose();
+
 const app = express();
-const PORT = 3000;
+const server = http.createServer(app);
 
-// Middleware for parsing JSON arrays and static file routing
+// Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.urlencoded({ extended: true }));
 
-// Global registry tracking live commuter stream connection instances
-let commuterClients = [];
+// Serve all static assets from the public folder
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ==========================================
-// 1. REAL-TIME EVENT STREAM (SSE) FOR PASSENGERS
-// ==========================================
-app.get('/api/commuter/updates', (req, res) => {
+// SSE Clients array for real-time station blocks
+let sseClients = [];
+
+// Database Setup
+const dbPath = path.join(__dirname, 'transitpulse.db');
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Database connection error:', err.message);
+    } else {
+        console.log('Connected to the SQLite database.');
+        // Initialize tables if they don't exist
+        db.run(`CREATE TABLE IF NOT EXISTS admin_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )`);
+    }
+});
+
+// --- Server-Sent Events (SSE) Endpoint ---
+app.get('/events', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
 
-    // Add this tab connection to the active broadcast array
-    commuterClients.push(res);
+    sseClients.push(res);
 
-    // Remove client connection structure if passenger closes the browser tab
     req.on('close', () => {
-        commuterClients = commuterClients.filter(client => client !== res);
+        sseClients = sseClients.filter(client => client !== res);
     });
 });
 
-// ==========================================
-// 2. ADMIN BLOCK ACTION API DISPATCHER
-// ==========================================
-app.post('/api/admin/block-station', (req, res) => {
-    const { stationName, isBlocked } = req.body;
-    
-    console.log(`[Command Center] Status update: ${stationName} -> Blocked: ${isBlocked}`);
-
-    // --- YOUR SQLITE3 DATABASE WEIGHT ACCENT PIPELINES GO HERE ---
-    // Example: db.run("UPDATE routes SET weight = 99999 WHERE station = ...")
-
-    // Broadcast the hazard alert payload to all public commuter viewports instantly
-    if (isBlocked) {
-        commuterClients.forEach(client => {
-            client.write(`data: ${JSON.stringify({ stationName })}\n\n`);
-        });
-    }
-
-    res.json({ 
-        success: true, 
-        message: `Network matrix recalculation complete for ${stationName}.` 
+// Function to broadcast alert to all connected public users
+function broadcastAlert(message) {
+    sseClients.forEach(client => {
+        client.write(`data: ${JSON.stringify({ alert: message })}\n\n`);
     });
-});
+}
 
-// Serve frontend main access indices
+// --- Routes ---
+
+// 1. Public Portal Route (index.html inside public folder)
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.listen(PORT, () => {
-    console.log(`\n===================================================`);
-    console.log(`🚀 TRANSITPULSE ALGORITHM ENGINE ACTIVE ON PORT ${PORT}`);
-    console.log(`👉 Commuter Portal: http://localhost:${PORT}`);
-    console.log(`👉 Admin Panel:     http://localhost:${PORT}/admin.html`);
-    console.log(`===================================================\n`);
-});
-
-// 1. Tell Express to serve ALL static files (CSS, JS, images) from the public folder
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ... (your other middleware, routes, and SQLite setup) ...
-
-// 2. Update the root route to point inside the public folder
-app.get('/', (req, res) => {
-    const homepagePath = path.join(__dirname, 'public', 'index.html'); 
-    
+    const homepagePath = path.join(__dirname, 'public', 'index.html');
     res.sendFile(homepagePath, (err) => {
         if (err) {
-            console.error("CRITICAL: Could not find index.html at location:", homepagePath);
+            console.error("CRITICAL: Could not find index.html at:", homepagePath);
             res.status(404).send("<h3>TransitPulse Error: index.html is missing from the public folder!</h3>");
         }
     });
 });
 
-// ... (your admin.html route and app.listen code) ...
+// 2. Admin Dashboard Route (admin.html inside public folder)
+app.get('/admin', (req, res) => {
+    const adminPath = path.join(__dirname, 'public', 'admin.html');
+    res.sendFile(adminPath, (err) => {
+        if (err) {
+            console.error("CRITICAL: Could not find admin.html at:", adminPath);
+            res.status(404).send("<h3>TransitPulse Error: admin.html is missing from the public folder!</h3>");
+        }
+    });
+});
+
+// 3. Admin Authentication Endpoint
+app.post('/api/admin/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    // Simple authentication logic (Change these credentials for production)
+    if (username === 'admin' && password === 'dypacs123') {
+        res.json({ success: true, message: 'Authentication successful' });
+    } else {
+        res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+});
+
+// 4. Action Endpoint to Block a Station (Triggered by Admin)
+app.post('/api/admin/block-station', (req, res) => {
+    const { stationName, reason } = req.body;
+    
+    if (!stationName) {
+        return res.status(400).json({ success: false, message: 'Station name is required' });
+    }
+
+    const alertMessage = `ALERT: ${stationName} Station is currently blocked. Reason: ${reason || 'Maintenance'}. Dynamic rerouting applied.`;
+    
+    // Trigger real-time alert to all public portals via SSE
+    broadcastAlert(alertMessage);
+
+    res.json({ success: true, message: `Station ${stationName} blocked successfully and alert broadcasted.` });
+});
+
+// Start Server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`TransitPulse server is running on port ${PORT}`);
+});
