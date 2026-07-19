@@ -64,3 +64,10 @@ app.listen(PORT, () => {
     console.log(`👉 Admin Panel:     http://localhost:${PORT}/admin.html`);
     console.log(`===================================================\n`);
 });
+// Update static routing line near the top:
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Update the root route handler at the bottom:
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
