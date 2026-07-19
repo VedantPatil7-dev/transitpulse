@@ -75,3 +75,19 @@ app.get('/', (req, res) => {
         }
     });
 });
+const path = require('path');
+
+// ... (your existing setup and SSE code) ...
+
+// Serve frontend main access indices
+app.get('/', (req, res) => {
+    // __dirname ensures it looks exactly where server.js is running
+    const homepagePath = path.join(__dirname, 'index.html'); 
+    
+    res.sendFile(homepagePath, (err) => {
+        if (err) {
+            console.error("CRITICAL: Could not find index.html at location:", homepagePath);
+            res.status(404).send("<h3>TransitPulse Error: index.html is missing from the server root!</h3>");
+        }
+    });
+});
