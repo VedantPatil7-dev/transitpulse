@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransitPulse | Pune Metro Commuter Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">🚇 TransitPulse</div>
+            <button class="nav-btn active" onclick="location.href='/'">Commuter Portal</button>
+            <hr style="border: 0; border-top: 1px solid var(--border-glow); margin: 1rem 0;">
+            <!-- Secure outward link to the separate Admin Control system -->
+            <button class="nav-btn admin-link" onclick="location.href='/admin.html'" style="color: var(--purple-line);">⚙️ Control Center</button>
+        </nav>
+
+        <!-- Main Passenger Viewport -->
+        <main class="content">
+            <header>
+                <h1>Pune Metro Commuter Network</h1>
+                <p>Real-time dynamic route planner & network monitoring</p>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Journey Planning Card -->
+                <div class="card glass-card">
+                    <h3>Plan Your Journey</h3>
+                    <div class="input-group">
+                        <label>Origin Station</label>
+                        <select id="origin"></select>
+                    </div>
+                    <div class="input-group">
+                        <label>Destination Station</label>
+                        <select id="destination"></select>
+                    </div>
+                    <button class="btn-primary" onclick="findRoute()">Calculate Shortest Path</button>
+                </div>
+
+                <!-- Dijkstra Output Metrics Panel -->
+                <div class="card glass-card output-card">
+                    <h3>Optimal Path Metrics</h3>
+                    <div id="route-output" class="placeholder-text">Select your journey details to run Dijkstra calculation...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="app.js">
+        // =======================================================
+// LIVE SYSTEM EVENT SOURCE LISTENER FOR ADMINISTRATIVE BLOCKS
+// =======================================================
+const liveUpdateStream = new EventSource('/api/commuter/updates');
+
+liveUpdateStream.onmessage = function(event) {
+    try {
+        const payload = JSON.parse(event.data);
+        if (payload && payload.stationName) {
+            triggerBlockWarningPopup(payload.stationName);
+        }
+    } catch (err) {
+        console.error("Error parsing real-time server stream payload:", err);
+    }
+};
+
+// =======================================================
+// DYNAMIC POPUP MODAL GENERATION & RENDERING LOGIC
+// =======================================================
+function triggerBlockWarningPopup(stationName) {
+    // 1. Build Layer Mask Overlays with Glassmorphic Blur Properties
+    const screenOverlay = document.createElement('div');
+    screenOverlay.style.position = 'fixed';
+    screenOverlay.style.top = '0';
+    screenOverlay.style.left = '0';
+    screenOverlay.style.width = '100vw';
+    screenOverlay.style.height = '100vh';
+    screenOverlay.style.backgroundColor = 'rgba(15, 17, 26, 0.7)'; // Sleek Dark Mask Tint
+    screenOverlay.style.backdropFilter = 'blur(8px)';
+    screenOverlay.style.webkitBackdropFilter = 'blur(8px)';
+    screenOverlay.style.display = 'flex';
+    screenOverlay.style.justifyContent = 'center';
+    screenOverlay.style.alignItems = 'center';
+    screenOverlay.style.zIndex = '99999'; // Guaranteed priority paint layer execution
+
+    // 2. Build the Alert Box Modal Container
+    const dialogBox = document.createElement('div');
+    dialogBox.style.backgroundColor = '#1A1D29'; // Matches project theme colors
+    dialogBox.style.border = '2px solid #CF6679'; // High-visibility Warning Accent Red
+    dialogBox.style.padding = '35px';
+    dialogBox.style.borderRadius = '16px';
+    dialogBox.style.textAlign = 'center';
+    dialogBox.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.5)';
+    dialogBox.style.maxWidth = '450px';
+    dialogBox.style.width = '85%';
+    dialogBox.style.animation = 'popupScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+    // Inject CSS Keyframe animations directly into the runtime head profile
+    const animationStyle = document.createElement('style');
+    animationStyle.innerHTML = `
+        @keyframes popupScaleIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(animationStyle);
+
+    // 3. Assemble Core Text Node Modules
+    dialogBox.innerHTML = `
+        <div style="font-size: 50px; margin-bottom: 15px; filter: drop-shadow(0 0 10px #CF6679);">⚠️</div>
+        <h2 style="margin: 0 0 12px 0; color: #CF6679; font-family: 'Segoe UI', system-ui; font-size: 22px; font-weight: bold; uppercase;">STATION BLOCKED ALERT</h2>
+        <p style="margin: 0 0 25px 0; color: #FFFFFF; font-family: 'Segoe UI', system-ui; font-size: 15px; line-height: 1.6;">
+            Transit Command reports that <span style="color: #03DAC6; font-weight: bold;">${stationName}</span> station has been temporarily blocked by administration. Kindly avoid traveling to this station.
+        </p>
+        <button id="dismissPopupBtn" style="background-color: #6200EE; color: #FFFFFF; border: none; padding: 12px 30px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 10px rgba(98, 0, 238, 0.4);">
+            Understood
+        </button>
+    `;
+
+    screenOverlay.appendChild(dialogBox);
+    document.body.appendChild(screenOverlay);
+
+    // 4. Secure Component Teardown Dispatches upon Acknowledgment Click
+    dialogBox.querySelector('#dismissPopupBtn').addEventListener('click', () => {
+        document.body.removeChild(screenOverlay);
+        document.head.removeChild(animationStyle);
+    });
+}
+    </script>
+</body>
+</html>
