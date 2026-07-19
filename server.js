@@ -65,9 +65,13 @@ app.listen(PORT, () => {
     console.log(`===================================================\n`);
 });
 // Update static routing line near the top:
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Update the root route handler at the bottom:
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // This resolves the absolute path safely across both Windows local and Linux cloud environments
+    const filePath = path.resolve('index.html'); 
+    res.sendFile(filePath, (err) => {
+        if (err) {
+            console.error("File delivery breakdown:", err);
+            res.status(err.status).end();
+        }
+    });
 });
