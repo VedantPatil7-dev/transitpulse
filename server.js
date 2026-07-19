@@ -64,8 +64,9 @@ app.listen(PORT, () => {
     console.log(`👉 Admin Panel:     http://localhost:${PORT}/admin.html`);
     console.log(`===================================================\n`);
 });
-const path = require('path');
+
 const express = require('express');
+const path = require('path');
 const app = express();
 
 // 1. Tell Express to serve ALL static files (CSS, JS, images) from the public folder
