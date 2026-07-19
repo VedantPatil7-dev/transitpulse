@@ -64,21 +64,6 @@ app.listen(PORT, () => {
     console.log(`👉 Admin Panel:     http://localhost:${PORT}/admin.html`);
     console.log(`===================================================\n`);
 });
-// Update static routing line near the top:
-app.get('/', (req, res) => {
-    // This resolves the absolute path safely across both Windows local and Linux cloud environments
-    const filePath = path.resolve('index.html'); 
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            console.error("File delivery breakdown:", err);
-            res.status(err.status).end();
-        }
-    });
-});
-const path = require('path');
-
-// ... (your existing setup and SSE code) ...
-
 // Serve frontend main access indices
 app.get('/', (req, res) => {
     // __dirname ensures it looks exactly where server.js is running
